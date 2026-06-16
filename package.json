@@ -1,0 +1,13 @@
+{
+  "name": "chess-opening-coach",
+  "private": true,
+  "type": "module",
+  "workspaces": ["shared", "server", "web"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build:shared": "npm run build -w @coc/shared",
+    "dev:server": "npm run dev -w @coc/server",
+    "dev:web": "npm run dev -w @coc/web",
+    "test": "npm run test -w @coc/shared && npm run test -w @coc/server"
+  }
+}
