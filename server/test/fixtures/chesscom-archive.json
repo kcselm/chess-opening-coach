@@ -1,0 +1,33 @@
+{
+  "games": [
+    {
+      "url": "https://www.chess.com/game/live/1",
+      "pgn": "[Event \"Live Chess\"]\n[Result \"1-0\"]\n\n1. e4 e5 2. Nf3 Nc6 1-0",
+      "time_class": "rapid",
+      "rated": true,
+      "rules": "chess",
+      "end_time": 1700000000,
+      "white": { "username": "Me", "rating": 1500, "result": "win" },
+      "black": { "username": "Opp", "rating": 1490, "result": "resigned" }
+    },
+    {
+      "url": "https://www.chess.com/game/live/2",
+      "pgn": "[Result \"1/2-1/2\"]\n\n1. d4 d5 1/2-1/2",
+      "time_class": "blitz",
+      "rated": true,
+      "rules": "chess",
+      "end_time": 1700100000,
+      "white": { "username": "Opp", "rating": 1600, "result": "agreed" },
+      "black": { "username": "me", "rating": 1550, "result": "agreed" }
+    },
+    {
+      "url": "https://www.chess.com/game/live/3",
+      "pgn": "1. e4 1-0",
+      "time_class": "bullet",
+      "rules": "chess960",
+      "end_time": 1700200000,
+      "white": { "username": "Me", "rating": 1500, "result": "win" },
+      "black": { "username": "Opp", "rating": 1400, "result": "checkmated" }
+    }
+  ]
+}
