@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Chessground } from "chessground";
 import type { Api } from "chessground/api";
+import type { Key } from "chessground/types";
 import "chessground/assets/chessground.base.css";
 import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
@@ -20,7 +21,7 @@ export function Chessboard({ fen, arrows = [], size = 320 }: { fen: string; arro
   useEffect(() => {
     api.current?.set({
       fen,
-      drawable: { autoShapes: arrows.map((a) => ({ orig: a.orig, dest: a.dest, brush: a.brush ?? "green" })) },
+      drawable: { autoShapes: arrows.map((a) => ({ orig: a.orig as Key, dest: a.dest as Key, brush: a.brush ?? "green" })) },
     });
   }, [fen, arrows]);
 
