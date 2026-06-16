@@ -1,0 +1,23 @@
+# Brainstorming companion artifacts
+.superpowers/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Local data / engine
+*.sqlite
+*.sqlite-*
+*.db
+/server/data/
+engine/stockfish*
+
+# Env / editor
+.env
+.env.*
+.DS_Store
+.vscode/
+.idea/
