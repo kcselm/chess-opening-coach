@@ -26,3 +26,5 @@ export async function loadOpeningTable(db: Db): Promise<Map<string, { eco: strin
   const rows = await db.select().from(schema.openings);
   return new Map(rows.map((r) => [r.epd, { eco: r.eco, name: r.name }]));
 }
+
+export { pickOpening } from "./namer.js";

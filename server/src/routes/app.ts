@@ -1,12 +1,18 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
-import { SyncRequest } from "@coc/shared";
+import { SyncRequest, type Leak } from "@coc/shared";
 import type { RunStore } from "../runStore.js";
+
+export interface GameSummary { id: string; openingName: string | null; result: string; timeClass: string; endTime: number }
+export interface GameDetail extends GameSummary { moves: unknown[] }
 
 export interface AppDeps {
   runStore: RunStore;
   startSync: (runId: string, req: SyncRequest) => Promise<void>;
+  getLeaks?: () => Promise<Leak[]>;
+  getGames?: () => Promise<GameSummary[]>;
+  getGame?: (id: string) => Promise<GameDetail | null>;
 }
 
 export function createApp(deps: AppDeps) {
@@ -25,13 +31,16 @@ export function createApp(deps: AppDeps) {
         await new Promise<void>((resolve) => {
           const unsub = deps.runStore.subscribe(runId, (p) => {
             void stream.writeSSE({ data: JSON.stringify(p) });
-            if (p.phase === "done" || p.phase === "error") {
-              unsub();
-              resolve();
-            }
+            if (p.phase === "done" || p.phase === "error") { unsub(); resolve(); }
           });
         });
       });
+    })
+    .get("/leaks", async (c) => c.json((await deps.getLeaks?.()) ?? []))
+    .get("/games", async (c) => c.json((await deps.getGames?.()) ?? []))
+    .get("/games/:id", async (c) => {
+      const game = await deps.getGame?.(c.req.param("id"));
+      return game ? c.json(game) : c.json({ error: "not found" }, 404);
     });
   return app;
 }
