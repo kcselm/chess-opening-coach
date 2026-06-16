@@ -1,7 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
 import type { EvalResult, EngineLine } from "@coc/shared";
-import { parseInfoLine, parseBestMove, type InfoLine } from "./uci.js";
+import { parseInfoLine, type InfoLine } from "./uci.js";
 
 export interface EngineOptions {
   path?: string;
@@ -67,12 +67,18 @@ export class EngineManager {
       rl.on("line", (line) => {
         const info = parseInfoLine(line);
         if (info && info.depth >= 1) byRank.set(info.rank, info);
-        if (parseBestMove(line) !== null) {
+        // Resolve on ANY bestmove line — including "bestmove (none)", which Stockfish emits for a
+        // terminal (checkmate/stalemate) position. Keying on parseBestMove() !== null would miss
+        // "(none)" and hang the serialized queue forever on, e.g., a game mated inside the opening.
+        if (line.startsWith("bestmove ")) {
           rl.close();
           const lines: EngineLine[] = [...byRank.values()]
             .sort((a, b) => a.rank - b.rank)
             .map((i) => ({ rank: i.rank, scoreCp: i.scoreCp, mateIn: i.mateIn, pvUci: i.pvUci }));
           const top = lines[0];
+          // Terminal positions yield no usable info line; fall back to a neutral 0 cp so downstream
+          // scoreToCp() never sees both-null (it throws on that). Eval accuracy for a position that is
+          // already mate is unimportant — it sits at the very end of a game, past the opening of interest.
           resolve({
             epd: fen.split(" ").slice(0, 4).join(" "),
             depth,
