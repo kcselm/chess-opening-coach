@@ -18,10 +18,22 @@ export class EngineManager {
   async start(): Promise<void> {
     const path = this.opts.path ?? process.env.STOCKFISH_PATH ?? "./engine/stockfish";
     const proc = spawn(path, [], { stdio: "pipe" });
-    proc.on("error", (e) => {
-      throw new Error(`Failed to start Stockfish at "${path}": ${e.message}. Set STOCKFISH_PATH.`);
-    });
     this.proc = proc;
+    // Reject start() on a spawn failure (missing/wrong-platform binary) so the caller's try/catch
+    // can surface it — throwing inside the 'error' listener would be an uncaught exception instead.
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      proc.once("spawn", () => { if (!settled) { settled = true; resolve(); } });
+      proc.once("error", (e) => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(`Failed to start Stockfish at "${path}": ${e.message}. Set STOCKFISH_PATH.`));
+      });
+    });
+    // Keep a no-throw error handler for the rest of the process lifetime so a mid-run engine crash
+    // doesn't become an uncaught exception; in-flight analyses will simply never resolve and the
+    // sync's own error handling/timeout territory takes over.
+    proc.on("error", (e) => { console.error(`[engine] ${e.message}`); });
     await this.handshake();
     this.send(`setoption name Threads value ${this.opts.threads ?? Number(process.env.ENGINE_THREADS ?? 4)}`);
     this.send(`setoption name MultiPV value ${this.opts.multipv ?? Number(process.env.ENGINE_MULTIPV ?? 3)}`);

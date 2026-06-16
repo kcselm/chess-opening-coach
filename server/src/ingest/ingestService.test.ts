@@ -49,4 +49,17 @@ describe("ingestGames", () => {
     expect(res.gamesInserted).toBe(0);
     expect(await db.select().from(schema.moves)).toHaveLength(4);
   });
+
+  it("isolates a per-game parse failure — a bad PGN is skipped, others still ingest", async () => {
+    const db = await memDb();
+    const badGame: NormalizedGame = { ...sample, sourceGameId: "2", pgn: "1. e4 e5 2. Qh6" }; // illegal move
+    const res = await ingestGames(db, new FakeSource([sample, badGame]), params, 30);
+    expect(res.gamesInserted).toBe(1);
+    expect(res.skipped).toHaveLength(1);
+    expect(res.skipped[0]!.id).toBe("chesscom:2");
+    // the good game's moves are still present — the bad game did not abort the run
+    expect(await db.select().from(schema.moves)).toHaveLength(4);
+    // and the bad game left no orphan game row
+    expect(await db.select().from(schema.games)).toHaveLength(1);
+  });
 });

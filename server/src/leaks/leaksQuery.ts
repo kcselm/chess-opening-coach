@@ -1,4 +1,4 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, ne, sql } from "drizzle-orm";
 import { Chess } from "chess.js";
 import type { Db } from "../db/client.js";
 import { schema } from "../db/client.js";
@@ -29,7 +29,14 @@ export async function getLeaks(db: Db, opts: LeaksOptions): Promise<Leak[]> {
     })
     .from(schema.moves)
     .innerJoin(schema.games, eq(schema.moves.gameId, schema.games.id))
-    .where(and(eq(schema.moves.isMine, true), gte(schema.moves.cpLoss, opts.minCpLoss)))
+    // A leak is out-of-book AND losing eval (spec §7). bookStatus is a deterministic function of
+    // (epdBefore, san) — the group keys — so it's constant within a group; ne(..,'in_book') keeps
+    // novelty + unknown. Unclassified moves have null cpLoss and are already excluded by gte().
+    .where(and(
+      eq(schema.moves.isMine, true),
+      gte(schema.moves.cpLoss, opts.minCpLoss),
+      ne(schema.moves.bookStatus, "in_book"),
+    ))
     .groupBy(schema.moves.epdBefore, schema.moves.san)
     .orderBy(sql`count(*) * avg(${schema.moves.cpLoss}) desc`)
     .limit(opts.limit);

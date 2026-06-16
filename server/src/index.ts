@@ -34,7 +34,7 @@ async function startSync(runId: string, req: SyncRequest) {
     if (!engineStarted) { await engine.start(); engineStarted = true; }
     runStore.update(runId, { phase: "fetching" });
     const source = new ChesscomSource();
-    await ingestGames(db, source, req, MAX_PLIES, (gamesFetched) =>
+    const ingest = await ingestGames(db, source, req, MAX_PLIES, (gamesFetched) =>
       runStore.update(runId, { gamesFetched }));
 
     runStore.update(runId, { phase: "analyzing" });
@@ -61,7 +61,10 @@ async function startSync(runId: string, req: SyncRequest) {
 
     await classifyMoves(db, { depth: DEPTH, engineVersion: engineVersion(), thresholds: DEFAULT_THRESHOLDS });
 
-    runStore.update(runId, { phase: "done" });
+    runStore.update(runId, {
+      phase: "done",
+      message: ingest.skipped.length ? `Skipped ${ingest.skipped.length} unparseable game(s)` : undefined,
+    });
   } catch (e) {
     runStore.update(runId, { phase: "error", message: (e as Error).message });
   }

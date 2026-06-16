@@ -45,4 +45,19 @@ describe("getLeaks", () => {
     expect(leaks[0]!.scorePct).toBeCloseTo(25);
     expect(leaks[0]!.betterMoveSan).toBeTruthy();
   });
+
+  it("excludes in-book moves even when they lose eval (spec §7 out-of-book gate)", async () => {
+    const db = await memDb();
+    await db.insert(schema.games).values({ id: "g1", source: "chesscom", url: null, username: "me",
+      myColor: "white", result: "loss", timeClass: "rapid", endTime: 1, eco: "C50",
+      openingName: "Italian Game", myRating: 1500, oppRating: 1500, pgn: "" });
+    // an in-book move that nonetheless lost eval — must NOT be reported as a leak
+    await db.insert(schema.moves).values({ gameId: "g1", ply: 6,
+      fenBefore: "X w - -", fenAfter: "Y b - -", epdBefore: "X w - -", epdAfter: "Y b - -",
+      san: "Bc4", uci: "f1c4", isMine: true, bookStatus: "in_book",
+      evalBestCp: 20, evalPlayedCp: -130, cpLoss: 150, classification: "mistake" });
+
+    const leaks = await getLeaks(db, { minCpLoss: 100, depth: 18, engineVersion: "v", limit: 20 });
+    expect(leaks).toHaveLength(0);
+  });
 });

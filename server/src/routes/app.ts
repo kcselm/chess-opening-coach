@@ -28,6 +28,9 @@ export function createApp(deps: AppDeps) {
       return streamSSE(c, async (stream) => {
         const cur = deps.runStore.get(runId);
         if (cur) await stream.writeSSE({ data: JSON.stringify(cur) });
+        // If the run already finished before this client connected, there will be no further update
+        // to resolve on — close out now instead of leaving the handler hanging until disconnect.
+        if (cur && (cur.phase === "done" || cur.phase === "error")) return;
         await new Promise<void>((resolve) => {
           const unsub = deps.runStore.subscribe(runId, (p) => {
             void stream.writeSSE({ data: JSON.stringify(p) });
