@@ -6,6 +6,10 @@ describe("toEpd", () => {
     const fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
     expect(toEpd(fen)).toBe("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3");
   });
+  it("keeps the en-passant dash when there is no en-passant square", () => {
+    const fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    expect(toEpd(fen)).toBe("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+  });
 });
 
 describe("scoreToCp", () => {
@@ -17,5 +21,8 @@ describe("scoreToCp", () => {
   });
   it("maps negative mate to a large negative cp", () => {
     expect(scoreToCp({ scoreCp: null, mateIn: -2 })).toBe(-(100000 - 2));
+  });
+  it("throws when neither cp nor mate is provided", () => {
+    expect(() => scoreToCp({ scoreCp: null, mateIn: null })).toThrow();
   });
 });

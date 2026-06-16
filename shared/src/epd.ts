@@ -10,5 +10,7 @@ export function scoreToCp(s: { scoreCp: number | null; mateIn: number | null }):
     const mag = MATE_CP - Math.abs(s.mateIn);
     return s.mateIn > 0 ? mag : -mag;
   }
-  return 0;
+  // A UCI engine always reports exactly one of cp/mate. Both null means bad data — fail loud
+  // rather than returning a plausible-looking 0 that would silently corrupt cp-loss math.
+  throw new Error("scoreToCp: exactly one of scoreCp or mateIn must be non-null");
 }

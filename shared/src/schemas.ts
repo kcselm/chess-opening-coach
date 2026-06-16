@@ -47,7 +47,7 @@ export const Classification = z.enum(["best", "book", "inaccuracy", "mistake", "
 export type Classification = z.infer<typeof Classification>;
 
 export const SyncRequest = z.object({
-  source: z.enum(["chesscom"]),
+  source: z.enum(["chesscom"]), // lichess source lands in Phase 2; MVP syncs chess.com only
   username: z.string().min(1),
   since: z.number().int(),
   until: z.number().int(),
@@ -76,7 +76,7 @@ export const Leak = z.object({
   betterMoveSan: z.string().nullable(),
   occurrences: z.number().int(),
   avgCpLoss: z.number(),
-  scorePct: z.number(),
+  scorePct: z.number(), // 0–100: the user's score% across games where this leak occurred
   bookStatus: BookStatus,
 });
 export type Leak = z.infer<typeof Leak>;
