@@ -1,6 +1,6 @@
 import { and, eq, gte, ne, sql } from "drizzle-orm";
-import { Chess } from "chess.js";
 import type { Db } from "../db/client.js";
+import { bestMoveSan } from "../analysis/bestMove.js";
 import { schema } from "../db/client.js";
 import type { Leak, BookStatus } from "@coc/shared";
 
@@ -64,12 +64,5 @@ async function bestSanFor(db: Db, epd: string, fen: string, opts: LeaksOptions):
     and(eq(schema.positionEvals.epd, epd), eq(schema.positionEvals.depth, opts.depth),
       eq(schema.positionEvals.engineVersion, opts.engineVersion)));
   const lines = rows[0] ? (JSON.parse(rows[0].linesJson) as { pvUci: string[] }[]) : [];
-  const bestUci = lines[0]?.pvUci[0];
-  if (!bestUci) return null;
-  try {
-    const chess = new Chess(fen);
-    const mv = chess.move({ from: bestUci.slice(0, 2), to: bestUci.slice(2, 4),
-      promotion: bestUci.slice(4, 5) || undefined });
-    return mv.san;
-  } catch { return null; }
+  return bestMoveSan(fen, lines);
 }
