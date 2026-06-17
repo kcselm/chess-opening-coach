@@ -31,12 +31,41 @@ describe("whitePovCp", () => {
     expect(whitePovCp(AFTER_E4_EPD, { scoreCp: 30, mateIn: null })).toBe(-30);
     expect(whitePovCp(AFTER_E4_EPD, undefined)).toBeNull();
   });
+
+  it("returns null (not throws) for a both-null eval row — white to move", () => {
+    expect(whitePovCp(START_EPD, { scoreCp: null, mateIn: null })).toBeNull();
+  });
+
+  it("returns null (not throws) for a both-null eval row — black to move", () => {
+    expect(whitePovCp(AFTER_E4_EPD, { scoreCp: null, mateIn: null })).toBeNull();
+  });
 });
 
 describe("getGameReview", () => {
   it("returns null for an unknown game", async () => {
     const db = await memDb();
     expect(await getGameReview(db, "nope", { depth: 18, engineVersion: "v" })).toBeNull();
+  });
+
+  it("resolves (does not reject) when a position_evals row has both score_cp and mate_in NULL", async () => {
+    const db = await memDb();
+    await db.insert(schema.games).values({ id: "g2", source: "chesscom", url: null, username: "me",
+      myColor: "white", result: "draw", timeClass: "rapid", endTime: 8, eco: "A00",
+      openingName: "Unknown", myRating: 1200, oppRating: 1200, pgn: "" });
+    await db.insert(schema.moves).values({ gameId: "g2", ply: 1, fenBefore: START, fenAfter: AFTER_E4,
+      epdBefore: START_EPD, epdAfter: AFTER_E4_EPD, san: "e4", uci: "e2e4", isMine: true,
+      bookStatus: null, evalBestCp: null, evalPlayedCp: null, cpLoss: null, classification: null });
+    // Both-null row — what the orchestrator writes when the engine returns no lines
+    await db.insert(schema.positionEvals).values([
+      { epd: START_EPD, depth: 18, engineVersion: "v", scoreCp: null, mateIn: null, linesJson: "[]" },
+      { epd: AFTER_E4_EPD, depth: 18, engineVersion: "v", scoreCp: null, mateIn: null, linesJson: "[]" },
+    ]);
+
+    const review = await getGameReview(db, "g2", { depth: 18, engineVersion: "v" });
+    expect(review).not.toBeNull();
+    const m = review!.moves[0]!;
+    expect(m.evalBeforeWhiteCp).toBeNull();
+    expect(m.evalAfterWhiteCp).toBeNull();
   });
 
   it("enriches each ply with white-POV evals, engine lines, book, and better move", async () => {

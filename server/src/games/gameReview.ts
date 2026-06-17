@@ -8,7 +8,7 @@ export interface GameReviewOpts { depth: number; engineVersion: string }
 
 /** White-POV centipawns for an EPD, given its cached eval row. Negates when Black is to move. */
 export function whitePovCp(epd: string, row: { scoreCp: number | null; mateIn: number | null } | undefined): number | null {
-  if (!row) return null;
+  if (!row || (row.scoreCp === null && row.mateIn === null)) return null;
   const cp = scoreToCp(row);
   return epd.split(" ")[1] === "w" ? cp : -cp;
 }
