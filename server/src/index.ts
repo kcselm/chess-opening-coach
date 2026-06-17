@@ -24,12 +24,14 @@ const db = createDb();
 const runStore = new RunStore();
 const engine = new EngineManager();
 let engineStarted = false;
+let activeRunId: string | null = null;
 
 function engineVersion(): string {
   return (engine as any).version ?? "stockfish";
 }
 
 async function startSync(runId: string, req: SyncRequest) {
+  activeRunId = runId; // set synchronously (before any await) so a concurrent POST sees it
   try {
     if (!engineStarted) { await engine.start(); engineStarted = true; }
     runStore.update(runId, { phase: "fetching" });
@@ -67,11 +69,14 @@ async function startSync(runId: string, req: SyncRequest) {
     });
   } catch (e) {
     runStore.update(runId, { phase: "error", message: (e as Error).message });
+  } finally {
+    activeRunId = null;
   }
 }
 
 const app = createApp({
   runStore, startSync,
+  getActiveRunId: () => activeRunId,
   getLeaks: () => getLeaks(db, { minCpLoss: DEFAULT_THRESHOLDS.mistake, depth: DEPTH,
     engineVersion: engineVersion(), limit: 50 }),
   getGames: async () => (await db.select().from(schema.games)).map((g) => ({

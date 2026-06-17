@@ -10,6 +10,8 @@ export interface GameDetail extends GameSummary { moves: unknown[] }
 export interface AppDeps {
   runStore: RunStore;
   startSync: (runId: string, req: SyncRequest) => Promise<void>;
+  /** Returns the id of an in-flight run, or null when idle. Used to refuse concurrent syncs. */
+  getActiveRunId?: () => string | null;
   getLeaks?: () => Promise<Leak[]>;
   getGames?: () => Promise<GameSummary[]>;
   getGame?: (id: string) => Promise<GameDetail | null>;
@@ -19,6 +21,10 @@ export function createApp(deps: AppDeps) {
   const app = new Hono()
     .post("/sync", zValidator("json", SyncRequest), (c) => {
       const req = c.req.valid("json");
+      // Only one sync at a time: a second click re-attaches to the running run instead of
+      // launching a parallel one that would race it on inserts and duplicate the engine work.
+      const active = deps.getActiveRunId?.();
+      if (active) return c.json({ runId: active });
       const runId = deps.runStore.create();
       void deps.startSync(runId, req);
       return c.json({ runId });

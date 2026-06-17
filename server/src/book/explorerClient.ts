@@ -16,6 +16,10 @@ export interface GetBookOpts {
   fetchFn?: typeof fetch;
   now?: () => number;
   ratings?: number[];
+  /** Abort a single explorer request after this many ms. Without it, a stalled connection (the
+   *  lichess explorer holds one open when rate-limited) hangs the caller forever — and the sync
+   *  fires thousands of these in a sequential loop, so one hang freezes the whole pipeline. */
+  timeoutMs?: number;
 }
 
 export async function getBook(db: Db, epd: string, source: BookSource, opts: GetBookOpts = {}): Promise<Book> {
@@ -35,7 +39,7 @@ export async function getBook(db: Db, epd: string, source: BookSource, opts: Get
     params.set("speeds", "blitz,rapid,classical");
     params.set("ratings", (opts.ratings ?? [1600, 1800, 2000]).join(","));
   }
-  const res = await fetchFn(`${base}?${params.toString()}`);
+  const res = await fetchFn(`${base}?${params.toString()}`, { signal: AbortSignal.timeout(opts.timeoutMs ?? 10_000) });
   if (!res.ok) throw new Error(`explorer ${res.status}`);
   const data = (await res.json()) as ExplorerResponse;
 

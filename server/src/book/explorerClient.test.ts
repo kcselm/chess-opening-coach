@@ -29,4 +29,20 @@ describe("getBook", () => {
       { fetchFn: fakeFetch as typeof fetch, now: () => 1000 });
     expect(fetchCalls).toBe(1);
   });
+
+  it("aborts a hung request via the timeout instead of blocking forever", async () => {
+    const db = await memDb();
+    // Simulates the lichess explorer holding a connection open (rate-limit stall): only ever
+    // settles when the caller aborts it. If getBook supplies no abort signal, this never resolves
+    // and the test times out — exactly the hang that froze the sync's book-lookup loop.
+    const hangingFetch = (_url: string, init?: { signal?: AbortSignal }) =>
+      new Promise<Response>((_resolve, reject) => {
+        const signal = init?.signal;
+        signal?.addEventListener("abort", () => reject(signal.reason ?? new Error("aborted")));
+      });
+    await expect(
+      getBook(db, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", "masters",
+        { fetchFn: hangingFetch as unknown as typeof fetch, timeoutMs: 50 }),
+    ).rejects.toThrow();
+  });
 });
