@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 const NAV = [
   { to: "/", label: "Dashboard" },
   { to: "/leaks", label: "Leaks" },
+  { to: "/games", label: "Games" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
