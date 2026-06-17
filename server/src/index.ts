@@ -13,6 +13,8 @@ import { classifyMoves } from "./classify/classifyService.js";
 import { DEFAULT_THRESHOLDS } from "./classify/classifier.js";
 import { loadOpeningTable, pickOpening } from "./openings/seed.js";
 import { getLeaks } from "./leaks/leaksQuery.js";
+import { getGameReview } from "./games/gameReview.js";
+import { getLeakOccurrences } from "./leaks/leakOccurrences.js";
 import type { SyncRequest } from "@coc/shared";
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -80,14 +82,12 @@ const app = createApp({
   getLeaks: () => getLeaks(db, { minCpLoss: DEFAULT_THRESHOLDS.mistake, depth: DEPTH,
     engineVersion: engineVersion(), limit: 50 }),
   getGames: async () => (await db.select().from(schema.games)).map((g) => ({
-    id: g.id, openingName: g.openingName, result: g.result, timeClass: g.timeClass, endTime: g.endTime })),
-  getGame: async (id) => {
-    const g = (await db.select().from(schema.games).where(eq(schema.games.id, id)))[0];
-    if (!g) return null;
-    const mv = await db.select().from(schema.moves).where(eq(schema.moves.gameId, id));
-    return { id: g.id, openingName: g.openingName, result: g.result, timeClass: g.timeClass,
-      endTime: g.endTime, moves: mv };
-  },
+    id: g.id, source: g.source as "chesscom" | "lichess", openingName: g.openingName, eco: g.eco,
+    myColor: g.myColor as "white" | "black", result: g.result as "win" | "loss" | "draw",
+    timeClass: g.timeClass as "bullet" | "blitz" | "rapid" | "classical" | "daily",
+    endTime: g.endTime, myRating: g.myRating, oppRating: g.oppRating })),
+  getGame: (id) => getGameReview(db, id, { depth: DEPTH, engineVersion: engineVersion() }),
+  getOccurrences: (epd, san) => getLeakOccurrences(db, epd, san),
 });
 serve({ fetch: app.fetch, port: PORT });
 console.log(`server on http://localhost:${PORT}`);

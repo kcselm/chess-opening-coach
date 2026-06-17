@@ -1,11 +1,9 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
-import { SyncRequest, type Leak } from "@coc/shared";
+import { z } from "zod";
+import { SyncRequest, type Leak, type GameSummary, type GameReview, type LeakOccurrence } from "@coc/shared";
 import type { RunStore } from "../runStore.js";
-
-export interface GameSummary { id: string; openingName: string | null; result: string; timeClass: string; endTime: number }
-export interface GameDetail extends GameSummary { moves: unknown[] }
 
 export interface AppDeps {
   runStore: RunStore;
@@ -14,7 +12,8 @@ export interface AppDeps {
   getActiveRunId?: () => string | null;
   getLeaks?: () => Promise<Leak[]>;
   getGames?: () => Promise<GameSummary[]>;
-  getGame?: (id: string) => Promise<GameDetail | null>;
+  getGame?: (id: string) => Promise<GameReview | null>;
+  getOccurrences?: (epd: string, san: string) => Promise<LeakOccurrence[]>;
 }
 
 export function createApp(deps: AppDeps) {
@@ -46,6 +45,10 @@ export function createApp(deps: AppDeps) {
       });
     })
     .get("/leaks", async (c) => c.json((await deps.getLeaks?.()) ?? []))
+    .get("/leaks/occurrences", zValidator("query", z.object({ epd: z.string(), san: z.string() })), async (c) => {
+      const { epd, san } = c.req.valid("query");
+      return c.json((await deps.getOccurrences?.(epd, san)) ?? []);
+    })
     .get("/games", async (c) => c.json((await deps.getGames?.()) ?? []))
     .get("/games/:id", async (c) => {
       const game = await deps.getGame?.(c.req.param("id"));
