@@ -2,12 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Leak } from "@coc/shared";
+import type React from "react";
 
 // chessground manipulates real DOM/measures layout; stub the board so the test stays on the data/UX.
 vi.mock("../components/Chessboard.js", () => ({ Chessboard: () => null }));
+vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a> }));
 
 vi.mock("../api/client.js", () => ({
-  api: { leaks: { $get: vi.fn(async () => ({ json: async () => leaks })) } },
+  api: {
+    leaks: {
+      $get: vi.fn(async () => ({ json: async () => leaks })),
+      occurrences: { $get: vi.fn(async () => ({ json: async () => [] })) },
+    },
+  },
 }));
 
 const leaks: Leak[] = [{
