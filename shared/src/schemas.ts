@@ -80,3 +80,52 @@ export const Leak = z.object({
   bookStatus: BookStatus,
 });
 export type Leak = z.infer<typeof Leak>;
+
+export const GameSummary = z.object({
+  id: z.string(),
+  source: z.enum(["chesscom", "lichess"]),
+  openingName: z.string().nullable(),
+  eco: z.string().nullable(),
+  myColor: Color,
+  result: GameResult,
+  timeClass: TimeClass,
+  endTime: z.number().int(),
+  myRating: z.number().int().nullable(),
+  oppRating: z.number().int().nullable(),
+});
+export type GameSummary = z.infer<typeof GameSummary>;
+
+export const ReviewMove = z.object({
+  ply: z.number().int(),
+  san: z.string(),
+  uci: z.string(),
+  isMine: z.boolean(),
+  fenBefore: z.string(),
+  fenAfter: z.string(),
+  bookStatus: BookStatus.nullable(),
+  classification: Classification.nullable(),
+  cpLoss: z.number().int().nullable(),
+  // White-POV evals of the positions before/after this ply; null when the position has no cached eval.
+  evalBeforeWhiteCp: z.number().int().nullable(),
+  evalAfterWhiteCp: z.number().int().nullable(),
+  engineLines: z.array(EngineLine),
+  betterMoveSan: z.string().nullable(),
+  bookMoves: z.array(z.object({ san: z.string(), count: z.number().int() })),
+  bookTotal: z.number().int(),
+});
+export type ReviewMove = z.infer<typeof ReviewMove>;
+
+export const GameReview = GameSummary.extend({
+  moves: z.array(ReviewMove),
+});
+export type GameReview = z.infer<typeof GameReview>;
+
+export const LeakOccurrence = z.object({
+  gameId: z.string(),
+  ply: z.number().int(),
+  result: GameResult,
+  endTime: z.number().int(),
+  openingName: z.string().nullable(),
+  myColor: Color,
+});
+export type LeakOccurrence = z.infer<typeof LeakOccurrence>;
