@@ -5,8 +5,9 @@ import type { Leak, LeakOccurrence } from "@coc/shared";
 
 vi.mock("./Chessboard.js", () => ({ Chessboard: () => null }));
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, params, search }: any) =>
-    <a data-testid="occ-link" data-id={params.id} data-ply={search.ply}>{children}</a>,
+  Link: ({ children, to, params, search }: any) =>
+    <a data-testid={to === "/study" ? "study-link" : "occ-link"}
+       data-id={params?.id} data-ply={search?.ply} data-epd={search?.epd}>{children}</a>,
 }));
 const occ: LeakOccurrence[] = [{ gameId: "g7", ply: 4, result: "loss", endTime: 1,
   openingName: "Sicilian Defense", myColor: "white" }];
@@ -32,5 +33,7 @@ describe("LeakDetail occurrences", () => {
     const link = screen.getByTestId("occ-link");
     expect(link).toHaveAttribute("data-id", "g7");
     expect(link).toHaveAttribute("data-ply", "4");
+    expect(screen.getByTestId("study-link"))
+      .toHaveAttribute("data-epd", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
   });
 });

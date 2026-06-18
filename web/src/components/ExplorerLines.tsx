@@ -33,6 +33,9 @@ export function LeakDetail({ leak }: { leak: Leak }) {
             </ul>
           </>
         )}
+        <p style={{ marginTop: 8 }}>
+          <Link to="/study" search={{ epd }}>Study this position</Link>
+        </p>
       </div>
     </div>
   );
