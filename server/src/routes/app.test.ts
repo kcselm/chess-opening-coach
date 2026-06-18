@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createApp } from "./app.js";
 import { RunStore } from "../runStore.js";
-import { GameSummary, GameReview, LeakOccurrence } from "@coc/shared";
+import { GameSummary, GameReview, LeakOccurrence, ExploreResult, PositionAnalysis, TreeChildren, OpeningListItem } from "@coc/shared";
 
 describe("POST /sync", () => {
   it("validates the body and returns a runId", async () => {
@@ -73,5 +73,47 @@ describe("games + occurrences routes", () => {
     const res = await app.request("/leaks/occurrences?epd=" + encodeURIComponent("E w - -") + "&san=d4");
     expect(await res.json()).toEqual([occ]);
     expect(seen).toEqual(["E w - -", "d4"]);
+  });
+});
+
+describe("study + tree routes", () => {
+  const opening = OpeningListItem.parse({ epd: "E", eco: "B20", name: "Sicilian" });
+  const explore = ExploreResult.parse({ epd: "E", source: "masters", total: 0, bookMoves: [],
+    evalWhiteCp: null, lines: [] });
+  const analysis = PositionAnalysis.parse({ epd: "E", evalWhiteCp: 20, scoreCp: 20, mateIn: null,
+    lines: [], depth: 18, engineVersion: "v" });
+  const tree = TreeChildren.parse({ epd: "E", color: "white", children: [] });
+
+  it("GET /openings passes the query through", async () => {
+    let seen = "";
+    const app = createApp({ runStore: new RunStore(), startSync: async () => {},
+      getOpenings: async (q) => { seen = q; return [opening]; } });
+    expect(await (await app.request("/openings?q=sic")).json()).toEqual([opening]);
+    expect(seen).toBe("sic");
+  });
+
+  it("GET /explore passes epd + source", async () => {
+    let seen: [string, string] | null = null;
+    const app = createApp({ runStore: new RunStore(), startSync: async () => {},
+      explore: async (epd, source) => { seen = [epd, source]; return explore; } });
+    expect(await (await app.request("/explore?epd=E&source=masters")).json()).toEqual(explore);
+    expect(seen).toEqual(["E", "masters"]);
+  });
+
+  it("GET /position returns analysis, or 409 while a run is active", async () => {
+    const ok = createApp({ runStore: new RunStore(), startSync: async () => {},
+      getActiveRunId: () => null, analyzePosition: async () => analysis });
+    expect(await (await ok.request("/position?fen=" + encodeURIComponent("E w - - 0 1"))).json()).toEqual(analysis);
+    const busy = createApp({ runStore: new RunStore(), startSync: async () => {},
+      getActiveRunId: () => "run1", analyzePosition: async () => analysis });
+    expect((await busy.request("/position?fen=" + encodeURIComponent("E w - - 0 1"))).status).toBe(409);
+  });
+
+  it("GET /tree passes color + epd", async () => {
+    let seen: [string, string | undefined] | null = null;
+    const app = createApp({ runStore: new RunStore(), startSync: async () => {},
+      getTree: async (color, epd) => { seen = [color, epd]; return tree; } });
+    expect(await (await app.request("/tree?color=white&epd=E")).json()).toEqual(tree);
+    expect(seen).toEqual(["white", "E"]);
   });
 });

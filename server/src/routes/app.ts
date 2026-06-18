@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { SyncRequest, type Leak, type GameSummary, type GameReview, type LeakOccurrence } from "@coc/shared";
+import { SyncRequest, type Leak, type GameSummary, type GameReview, type LeakOccurrence,
+  type OpeningListItem, type ExploreResult, type PositionAnalysis, type TreeChildren } from "@coc/shared";
 import type { RunStore } from "../runStore.js";
 
 export interface AppDeps {
@@ -14,6 +15,10 @@ export interface AppDeps {
   getGames?: () => Promise<GameSummary[]>;
   getGame?: (id: string) => Promise<GameReview | null>;
   getOccurrences?: (epd: string, san: string) => Promise<LeakOccurrence[]>;
+  getOpenings?: (q: string) => Promise<OpeningListItem[]>;
+  explore?: (epd: string, source: "masters" | "rating") => Promise<ExploreResult>;
+  analyzePosition?: (fen: string) => Promise<PositionAnalysis>;
+  getTree?: (color: "white" | "black", epd?: string) => Promise<TreeChildren>;
 }
 
 export function createApp(deps: AppDeps) {
@@ -53,6 +58,23 @@ export function createApp(deps: AppDeps) {
     .get("/games/:id", async (c) => {
       const game = await deps.getGame?.(c.req.param("id"));
       return game ? c.json(game) : c.json({ error: "not found" }, 404);
+    })
+    .get("/openings", zValidator("query", z.object({ q: z.string() })), async (c) =>
+      c.json((await deps.getOpenings?.(c.req.valid("query").q)) ?? []))
+    .get("/explore", zValidator("query", z.object({ epd: z.string(), source: z.enum(["masters", "rating"]) })), async (c) => {
+      const { epd, source } = c.req.valid("query");
+      const r = await deps.explore?.(epd, source);
+      return r ? c.json(r) : c.json({ error: "explore unavailable" }, 503);
+    })
+    .get("/position", zValidator("query", z.object({ fen: z.string() })), async (c) => {
+      if (deps.getActiveRunId?.()) return c.json({ error: "engine busy: sync in progress" }, 409);
+      const r = await deps.analyzePosition?.(c.req.valid("query").fen);
+      return r ? c.json(r) : c.json({ error: "analysis unavailable" }, 503);
+    })
+    .get("/tree", zValidator("query", z.object({ color: z.enum(["white", "black"]), epd: z.string().optional() })), async (c) => {
+      const { color, epd } = c.req.valid("query");
+      const r = await deps.getTree?.(color, epd);
+      return r ? c.json(r) : c.json({ epd: epd ?? "", color, children: [] }, 200);
     });
   return app;
 }

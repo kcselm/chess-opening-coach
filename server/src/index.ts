@@ -15,6 +15,10 @@ import { loadOpeningTable, pickOpening } from "./openings/seed.js";
 import { getLeaks } from "./leaks/leaksQuery.js";
 import { getGameReview } from "./games/gameReview.js";
 import { getLeakOccurrences } from "./leaks/leakOccurrences.js";
+import { searchOpenings } from "./openings/searchOpenings.js";
+import { getExplore } from "./study/getExplore.js";
+import { analyzeOnDemand } from "./study/analyzeOnDemand.js";
+import { getTreeChildren } from "./tree/getTreeChildren.js";
 import type { SyncRequest } from "@coc/shared";
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -88,6 +92,14 @@ const app = createApp({
     endTime: g.endTime, myRating: g.myRating, oppRating: g.oppRating })),
   getGame: (id) => getGameReview(db, id, { depth: DEPTH, engineVersion: engineVersion() }),
   getOccurrences: (epd, san) => getLeakOccurrences(db, epd, san),
+  getOpenings: (q) => searchOpenings(db, q),
+  explore: (epd, source) => getExplore(db, epd, source, { depth: DEPTH, engineVersion: engineVersion() }),
+  analyzePosition: async (fen) => {
+    if (!engineStarted) { await engine.start(); engineStarted = true; }
+    const analyzer = { version: engineVersion(), analyze: (f: string, d: number, mpv: number) => engine.analyze(f, d, mpv) };
+    return analyzeOnDemand(db, analyzer, { depth: DEPTH, multipv: MULTIPV }, fen);
+  },
+  getTree: (color, epd) => getTreeChildren(db, color, epd),
 });
 serve({ fetch: app.fetch, port: PORT });
 console.log(`server on http://localhost:${PORT}`);
