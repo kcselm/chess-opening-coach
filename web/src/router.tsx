@@ -5,6 +5,7 @@ import { LeaksPage } from "./routes/leaks.js";
 import { GamesPage } from "./routes/games.js";
 import { ReviewPage } from "./routes/review.js";
 import { StudyPage } from "./routes/study.js";
+import { TreePage } from "./routes/tree.js";
 
 const rootRoute = createRootRoute({ component: () => (<AppShell><Outlet /></AppShell>) });
 const dashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: DashboardPage });
@@ -26,7 +27,9 @@ const studyRoute = createRoute({
   },
 });
 
-const routeTree = rootRoute.addChildren([dashboardRoute, leaksRoute, gamesRoute, reviewRoute, studyRoute]);
+const treeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/tree", component: TreePage });
+
+const routeTree = rootRoute.addChildren([dashboardRoute, leaksRoute, gamesRoute, reviewRoute, studyRoute, treeRoute]);
 export const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
