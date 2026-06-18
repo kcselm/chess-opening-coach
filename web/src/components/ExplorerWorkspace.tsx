@@ -17,7 +17,7 @@ export function ExplorerWorkspace({
   return (
     <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
       <div style={{ display: "flex", gap: 8 }}>
-        <EvalBar cp={evalWhiteCp ?? 0} />
+        <EvalBar cp={evalWhiteCp} />
         <Chessboard fen={fen} onMove={allowFreeMove ? onPlayMove : undefined} dests={dests} movableColor={movableColor} />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

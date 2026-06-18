@@ -35,6 +35,8 @@ export function StudyPage() {
     queryFn: async () => (await (await api.explore.$get({ query: { epd, source } })).json()) as ExploreResult,
   });
 
+  const lines = explore?.lines ?? [];
+
   const qc = useQueryClient();
   const analyze = useMutation({
     mutationFn: async (): Promise<PositionAnalysis | "busy"> => {
@@ -86,9 +88,9 @@ export function StudyPage() {
         {analyze.isPending ? "Analyzing…" : "Analyze"}
       </button>
       {analyze.data === "busy" && <span style={{ color: "#c0392b", marginLeft: 8 }}>engine busy (sync running)</span>}
-      {(explore?.lines.length ?? 0) > 0 && (
+      {lines.length > 0 && (
         <ul style={{ margin: "8px 0 0", paddingLeft: 16 }}>
-          {explore!.lines.map((l) => (
+          {lines.map((l) => (
             <li key={l.rank}>{l.mateIn !== null ? `#${l.mateIn}` : ((l.scoreCp ?? 0) / 100).toFixed(2)} &mdash; {l.pvUci[0]}</li>
           ))}
         </ul>
