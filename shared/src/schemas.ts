@@ -129,3 +129,68 @@ export const LeakOccurrence = z.object({
   myColor: Color,
 });
 export type LeakOccurrence = z.infer<typeof LeakOccurrence>;
+
+export const BookSource = z.enum(["masters", "rating"]);
+export type BookSource = z.infer<typeof BookSource>;
+
+export const OpeningListItem = z.object({
+  epd: z.string(),
+  eco: z.string(),
+  name: z.string(),
+});
+export type OpeningListItem = z.infer<typeof OpeningListItem>;
+
+export const BookMoveStat = z.object({
+  san: z.string(),
+  uci: z.string(),
+  count: z.number().int(),
+  white: z.number().int(),
+  draws: z.number().int(),
+  black: z.number().int(),
+});
+export type BookMoveStat = z.infer<typeof BookMoveStat>;
+
+export const ExploreResult = z.object({
+  epd: z.string(),
+  source: BookSource,
+  total: z.number().int(),
+  bookMoves: z.array(BookMoveStat),
+  // White-POV cp of this position from the cache, or null when uncached.
+  evalWhiteCp: z.number().int().nullable(),
+  lines: z.array(EngineLine),
+});
+export type ExploreResult = z.infer<typeof ExploreResult>;
+
+export const PositionAnalysis = z.object({
+  epd: z.string(),
+  evalWhiteCp: z.number().int().nullable(),
+  scoreCp: z.number().int().nullable(),
+  mateIn: z.number().int().nullable(),
+  lines: z.array(EngineLine),
+  depth: z.number().int(),
+  engineVersion: z.string(),
+});
+export type PositionAnalysis = z.infer<typeof PositionAnalysis>;
+
+export const TreeChild = z.object({
+  san: z.string(),
+  uci: z.string(),
+  epdAfter: z.string(),
+  count: z.number().int(),
+  isMine: z.boolean(),
+  classification: Classification.nullable(),
+  // Averaged cp-loss of your plays of this move (null when none had a cp-loss).
+  avgCpLoss: z.number().nullable(),
+  // Objective outcome counts; because the Tree is color-scoped these read as your own W/D/L.
+  white: z.number().int(),
+  draws: z.number().int(),
+  black: z.number().int(),
+});
+export type TreeChild = z.infer<typeof TreeChild>;
+
+export const TreeChildren = z.object({
+  epd: z.string(),
+  color: Color,
+  children: z.array(TreeChild),
+});
+export type TreeChildren = z.infer<typeof TreeChildren>;
