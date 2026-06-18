@@ -1,17 +1,13 @@
 import { and, eq } from "drizzle-orm";
-import { scoreToCp, type GameReview, type ReviewMove, type EngineLine } from "@coc/shared";
+import { type GameReview, type ReviewMove, type EngineLine } from "@coc/shared";
 import type { Db } from "../db/client.js";
 import { schema } from "../db/client.js";
 import { bestMoveSan } from "../analysis/bestMove.js";
+import { whitePovCp } from "../analysis/whitePov.js";
+
+export { whitePovCp };
 
 export interface GameReviewOpts { depth: number; engineVersion: string }
-
-/** White-POV centipawns for an EPD, given its cached eval row. Negates when Black is to move. */
-export function whitePovCp(epd: string, row: { scoreCp: number | null; mateIn: number | null } | undefined): number | null {
-  if (!row || (row.scoreCp === null && row.mateIn === null)) return null;
-  const cp = scoreToCp(row);
-  return epd.split(" ")[1] === "w" ? cp : -cp;
-}
 
 export async function getGameReview(db: Db, id: string, opts: GameReviewOpts): Promise<GameReview | null> {
   const g = (await db.select().from(schema.games).where(eq(schema.games.id, id)))[0];
