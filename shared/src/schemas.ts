@@ -194,3 +194,35 @@ export const TreeChildren = z.object({
   children: z.array(TreeChild),
 });
 export type TreeChildren = z.infer<typeof TreeChildren>;
+
+// One first-try outcome at a position inside a drilled line. `createdAt` is server-stamped, so it
+// is not part of this client→server payload.
+export const DrillAttempt = z.object({
+  epd: z.string(),
+  openingEpd: z.string().nullable(),
+  openingName: z.string().nullable(),
+  color: Color,
+  source: BookSource,
+  playedUci: z.string(),
+  pass: z.boolean(),
+  cpLoss: z.number().int().nullable(),
+});
+export type DrillAttempt = z.infer<typeof DrillAttempt>;
+
+export const DrillResultsBatch = z.object({
+  attempts: z.array(DrillAttempt),
+});
+export type DrillResultsBatch = z.infer<typeof DrillResultsBatch>;
+
+export const DrillReason = z.enum(["leak", "failed", "stale"]);
+export type DrillReason = z.infer<typeof DrillReason>;
+
+export const DrillRecommendation = z.object({
+  openingEpd: z.string(),
+  openingName: z.string(),
+  eco: z.string().nullable(),
+  reason: DrillReason,
+  score: z.number(),
+  lastDrilled: z.number().int().nullable(), // epoch seconds; null if never drilled
+});
+export type DrillRecommendation = z.infer<typeof DrillRecommendation>;
