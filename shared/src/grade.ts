@@ -16,7 +16,9 @@ export interface GradeInput {
   bookMoves: BookMoveStat[] | null;
   /** MultiPV lines at the position before the move (from the eval cache). */
   lines: EngineLine[];
-  /** Mover's-perspective eval after the move; supply when the move is not in `lines`. */
+  /** The played move's score from the PRE-MOVE mover's perspective. The engine's eval at the
+   *  position after the move is from the opponent's side-to-move, so the caller must negate it:
+   *  pass `-scoreToCp(afterLine)`. Supply only when the move is not in `lines` (else leave null). */
   playedEvalCp: number | null;
   maxCpLoss: number;
 }
