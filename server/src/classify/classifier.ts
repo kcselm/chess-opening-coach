@@ -1,4 +1,5 @@
 import type { BookStatus, Classification } from "@coc/shared";
+import { moveCpLoss } from "@coc/shared";
 
 export interface Thresholds { inaccuracy: number; mistake: number; blunder: number }
 export const DEFAULT_THRESHOLDS: Thresholds = { inaccuracy: 50, mistake: 100, blunder: 200 };
@@ -20,7 +21,7 @@ export interface ClassifyResult {
 
 export function classifyMove(input: ClassifyInput): ClassifyResult {
   const evalPlayedCp = -input.bestCpAfter;
-  const cpLoss = Math.max(0, input.bestCpBefore - evalPlayedCp);
+  const cpLoss = moveCpLoss(input.bestCpBefore, evalPlayedCp);
 
   const t = input.thresholds;
   let classification: Classification;
