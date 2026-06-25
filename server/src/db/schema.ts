@@ -68,3 +68,20 @@ export const openings = sqliteTable("openings", {
   eco: text("eco").notNull(),
   name: text("name").notNull(),
 });
+
+export const drillAttempts = sqliteTable(
+  "drill_attempts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    epd: text("epd").notNull(),               // position the user was asked to move in
+    openingEpd: text("opening_epd"),          // the opening the drill started from
+    openingName: text("opening_name"),
+    color: text("color").notNull(),           // which side the user drilled
+    source: text("source").notNull(),         // masters | rating
+    playedUci: text("played_uci").notNull(),  // the FIRST-TRY move
+    pass: integer("pass", { mode: "boolean" }).notNull(),
+    cpLoss: integer("cp_loss"),               // null when unverifiable
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => ({ byEpd: index("drill_attempts_epd_idx").on(t.epd) })
+);
