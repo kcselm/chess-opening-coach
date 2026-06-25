@@ -6,6 +6,7 @@ import { GamesPage } from "./routes/games.js";
 import { ReviewPage } from "./routes/review.js";
 import { StudyPage } from "./routes/study.js";
 import { TreePage } from "./routes/tree.js";
+import { DrillPage } from "./routes/drill.js";
 
 const rootRoute = createRootRoute({ component: () => (<AppShell><Outlet /></AppShell>) });
 const dashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: DashboardPage });
@@ -29,7 +30,17 @@ const studyRoute = createRoute({
 
 const treeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/tree", component: TreePage });
 
-const routeTree = rootRoute.addChildren([dashboardRoute, leaksRoute, gamesRoute, reviewRoute, studyRoute, treeRoute]);
+const drillRoute = createRoute({
+  getParentRoute: () => rootRoute, path: "/drill", component: DrillPage,
+  validateSearch: (s: Record<string, unknown>): { epd?: string; color?: "white" | "black"; source?: "masters" | "rating" } => {
+    const epd = typeof s.epd === "string" ? s.epd : undefined;
+    const color = s.color === "black" ? "black" : s.color === "white" ? "white" : undefined;
+    const source = s.source === "rating" ? "rating" : s.source === "masters" ? "masters" : undefined;
+    return { ...(epd ? { epd } : {}), ...(color ? { color } : {}), ...(source ? { source } : {}) };
+  },
+});
+
+const routeTree = rootRoute.addChildren([dashboardRoute, leaksRoute, gamesRoute, reviewRoute, studyRoute, treeRoute, drillRoute]);
 export const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {

@@ -7,6 +7,7 @@ const NAV = [
   { to: "/games", label: "Games" },
   { to: "/tree", label: "Tree" },
   { to: "/study", label: "Study" },
+  { to: "/drill", label: "Drill" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
