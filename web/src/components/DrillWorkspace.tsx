@@ -55,15 +55,15 @@ export function DrillWorkspace({ drill, color, onAgain, onBack }: {
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888" }}>Theory from here</div>
           <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
             <tbody>
-              {drill.bookMoves.map((b) => {
-                const pct = drill.bookMoves.reduce((s, x) => s + x.count, 0);
-                return (
+              {(() => {
+                const total = drill.bookMoves.reduce((s, x) => s + x.count, 0);
+                return drill.bookMoves.map((b) => (
                   <tr key={b.uci}>
                     <td style={{ padding: "2px 8px 2px 0" }}>{b.san}</td>
-                    <td style={{ padding: "2px 0", color: "#888" }}>{pct ? Math.round((b.count / pct) * 100) : 0}%</td>
+                    <td style={{ padding: "2px 0", color: "#888" }}>{total ? Math.round((b.count / total) * 100) : 0}%</td>
                   </tr>
-                );
-              })}
+                ));
+              })()}
             </tbody>
           </table>
         </div>

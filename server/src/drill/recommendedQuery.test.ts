@@ -45,6 +45,19 @@ describe("getDrillRecommendations", () => {
     expect(recs[2]!.openingEpd).toBe("STALEROOT w - -");
   });
 
+  it("a later pass at the same position clears the failure", async () => {
+    const db = await memDb();
+    const NOW = 1_000_000;
+    await db.insert(schema.drillAttempts).values([
+      { epd: "p w - -", openingEpd: "ROOT w - -", openingName: "Caro-Kann", color: "white",
+        source: "rating", playedUci: "x", pass: false, cpLoss: 90, createdAt: NOW - 5 * 86400 },
+      { epd: "p w - -", openingEpd: "ROOT w - -", openingName: "Caro-Kann", color: "white",
+        source: "rating", playedUci: "y", pass: true, cpLoss: 0, createdAt: NOW - 2 * 86400 },
+    ]);
+    const recs = await getDrillRecommendations(db, [], { staleDays: 14, now: NOW, limit: 10 });
+    expect(recs).toHaveLength(0);
+  });
+
   it("omits recently-drilled openings with no open failures", async () => {
     const db = await memDb();
     const NOW = 1_000_000;
