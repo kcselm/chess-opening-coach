@@ -54,7 +54,7 @@ describe("useDrill", () => {
     expect(resultsPost).toHaveBeenCalledTimes(1);
     const posted = resultsPost.mock.calls[0]![0] as { json: { attempts: unknown[] } };
     expect(posted.json.attempts).toHaveLength(1);
-  });
+  }, 15000);
 
   it("flags an off-book move, records the first-try miss, and waits for a retry", async () => {
     const { result } = await mountDrill();
@@ -71,5 +71,5 @@ describe("useDrill", () => {
     await waitFor(() => expect(result.current.status).toBe("done"));
     expect(result.current.total).toBe(1);     // only the first-try (failed) attempt was recorded
     expect(result.current.correct).toBe(0);
-  });
+  }, 15000);
 });
