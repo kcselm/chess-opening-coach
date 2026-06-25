@@ -1,0 +1,56 @@
+[
+  {
+    "id": "g1", "variant": "standard", "speed": "blitz",
+    "createdAt": 1700000000000, "lastMoveAt": 1700000300000, "winner": "white",
+    "players": {
+      "white": { "user": { "name": "Me" }, "rating": 1500 },
+      "black": { "user": { "name": "Opp" }, "rating": 1490 }
+    },
+    "pgn": "[Result \"1-0\"]\n\n1. e4 e5 2. Nf3 Nc6 1-0"
+  },
+  {
+    "id": "g2", "variant": "standard", "speed": "rapid",
+    "createdAt": 1700099000000, "lastMoveAt": 1700100000000,
+    "players": {
+      "white": { "user": { "name": "Opp" }, "rating": 1600 },
+      "black": { "user": { "name": "me" }, "rating": 1550 }
+    },
+    "pgn": "[Result \"1/2-1/2\"]\n\n1. d4 d5 1/2-1/2"
+  },
+  {
+    "id": "g3", "variant": "chess960", "speed": "blitz",
+    "createdAt": 1700199000000, "lastMoveAt": 1700200000000, "winner": "white",
+    "players": {
+      "white": { "user": { "name": "Me" }, "rating": 1500 },
+      "black": { "user": { "name": "Opp" }, "rating": 1400 }
+    },
+    "pgn": "1. e4 1-0"
+  },
+  {
+    "id": "g4", "variant": "standard", "speed": "ultraBullet",
+    "createdAt": 1700299000000, "lastMoveAt": 1700300000000, "winner": "black",
+    "players": {
+      "white": { "user": { "name": "me" }, "rating": 1400 },
+      "black": { "user": { "name": "Opp" }, "rating": 1450 }
+    },
+    "pgn": "[Result \"0-1\"]\n\n1. f3 e5 0-1"
+  },
+  {
+    "id": "g5", "variant": "standard", "speed": "correspondence",
+    "createdAt": 1700399000000, "lastMoveAt": 1700400000000, "winner": "white",
+    "players": {
+      "white": { "user": { "name": "me" }, "rating": 1700 },
+      "black": { "user": { "name": "Opp" }, "rating": 1680 }
+    },
+    "pgn": "[Result \"1-0\"]\n\n1. e4 c5 1-0"
+  },
+  {
+    "id": "g6", "variant": "standard", "speed": "classical",
+    "createdAt": 1700499000000, "lastMoveAt": 1700500000000, "winner": "white",
+    "players": {
+      "white": { "user": { "name": "me" }, "rating": 1720 },
+      "black": { "user": { "name": "Opp" }, "rating": 1700 }
+    },
+    "pgn": "[Result \"1-0\"]\n\n1. d4 d5 1-0"
+  }
+]
