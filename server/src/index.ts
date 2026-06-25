@@ -5,7 +5,7 @@ import { createApp } from "./routes/app.js";
 import { RunStore } from "./runStore.js";
 import { createDb, schema } from "./db/client.js";
 import { EngineManager } from "./engine/engineManager.js";
-import { ChesscomSource } from "./sources/chesscom.js";
+import { sourceFor } from "./sources/factory.js";
 import { ingestGames } from "./ingest/ingestService.js";
 import { analyzePositions } from "./analysis/orchestrator.js";
 import { getBook } from "./book/explorerClient.js";
@@ -43,7 +43,7 @@ async function startSync(runId: string, req: SyncRequest) {
   try {
     if (!engineStarted) { await engine.start(); engineStarted = true; }
     runStore.update(runId, { phase: "fetching" });
-    const source = new ChesscomSource();
+    const source = sourceFor(req.source, process.env.LICHESS_TOKEN);
     const ingest = await ingestGames(db, source, req, MAX_PLIES, (gamesFetched) =>
       runStore.update(runId, { gamesFetched }));
 
