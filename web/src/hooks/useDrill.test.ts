@@ -22,7 +22,7 @@ const exploreGet = vi.fn(async ({ query }: { query: { epd: string } }) =>
 const positionGet = vi.fn(async ({ query }: { query: { fen: string } }): Promise<{ status: number; json: () => Promise<PositionAnalysis> }> =>
   ({ status: 200, json: async () => ({ epd: "x", evalWhiteCp: -20, scoreCp: 20, mateIn: null,
     lines: [{ rank: 1, scoreCp: 20, mateIn: null, pvUci: ["a7a6"] }], depth: 18, engineVersion: "v" }) }));
-const resultsPost = vi.fn(async () => ({ ok: true, json: async () => ({ saved: 1 }) }));
+const resultsPost = vi.fn(async (_a: unknown) => ({ ok: true, json: async () => ({ saved: 1 }) }));
 
 vi.mock("../api/client.js", () => ({
   api: {
