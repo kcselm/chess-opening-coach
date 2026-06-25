@@ -30,10 +30,10 @@ describe("DrillWorkspace", () => {
     expect(screen.getByText("e6")).toBeInTheDocument(); // book theory stays visible
   });
 
-  it("shows the better-move hint on a miss", () => {
+  it("shows the better-move hint while keeping theory visible on a miss", () => {
     render(<DrillWorkspace drill={{ ...base, feedback: { betterSans: ["e6", "Nf6"] } }} color="black" onAgain={() => {}} onBack={() => {}} />);
-    expect(screen.getByText(/Better:/)).toBeInTheDocument();
-    expect(screen.getByText(/e6/)).toBeInTheDocument();
+    expect(screen.getByText(/Better:/)).toHaveTextContent("Better: e6 / Nf6");
+    expect(screen.getByText("e6")).toBeInTheDocument(); // theory table stays visible during a miss (layout C)
   });
 
   it("shows the completion summary with Drill again / Back when done", () => {

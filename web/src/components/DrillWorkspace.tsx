@@ -51,24 +51,22 @@ export function DrillWorkspace({ drill, color, onAgain, onBack }: {
         )}
 
         {/* bottom: book theory stays visible while drilling (learn-as-you-go) */}
-        {!drill.feedback && (
-          <div>
-            <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888" }}>Theory from here</div>
-            <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
-              <tbody>
-                {drill.bookMoves.map((b) => {
-                  const pct = drill.bookMoves.reduce((s, x) => s + x.count, 0);
-                  return (
-                    <tr key={b.uci}>
-                      <td style={{ padding: "2px 8px 2px 0" }}>{b.san}</td>
-                      <td style={{ padding: "2px 0", color: "#888" }}>{pct ? Math.round((b.count / pct) * 100) : 0}%</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888" }}>Theory from here</div>
+          <table style={{ borderCollapse: "collapse", fontSize: 13 }}>
+            <tbody>
+              {drill.bookMoves.map((b) => {
+                const pct = drill.bookMoves.reduce((s, x) => s + x.count, 0);
+                return (
+                  <tr key={b.uci}>
+                    <td style={{ padding: "2px 8px 2px 0" }}>{b.san}</td>
+                    <td style={{ padding: "2px 0", color: "#888" }}>{pct ? Math.round((b.count / pct) * 100) : 0}%</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
         <div data-testid="line" style={{ fontSize: 12, color: "#888", maxWidth: 280 }}>{drill.lineSan.join(" ")}</div>
       </div>
