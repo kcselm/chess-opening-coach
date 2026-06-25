@@ -5,9 +5,10 @@ phase** with a native **Stockfish** engine cross-referenced against the **Liches
 opening book**, and surfaces a ranked **leak report** of your recurring opening
 mistakes — openingtree.com, but every move gets Stockfish's verdict.
 
-> **Status:** MVP (Phase 0 + Phase 1). Imports chess.com games, analyzes openings,
-> and shows the leak report. Lichess import, the repertoire tree, per-game review,
-> and study mode are planned later phases (see
+> **Status:** Phases 0–4. Imports chess.com games, analyzes openings, and shows the leak
+> report, repertoire **Tree**, per-game **Review**, **Study** (browse a line over book +
+> our eval), and **Drill** (rehearse a picked opening against a book opponent, graded by
+> the same rule as the leak report). Lichess import is still pending (see
 > `docs/superpowers/specs/2026-06-15-chess-opening-coach-design.md`).
 
 ## Architecture
