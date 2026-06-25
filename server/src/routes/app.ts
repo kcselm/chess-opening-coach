@@ -2,8 +2,9 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { SyncRequest, type Leak, type GameSummary, type GameReview, type LeakOccurrence,
-  type OpeningListItem, type ExploreResult, type PositionAnalysis, type TreeChildren } from "@coc/shared";
+import { SyncRequest, DrillResultsBatch, type Leak, type GameSummary, type GameReview, type LeakOccurrence,
+  type OpeningListItem, type ExploreResult, type PositionAnalysis, type TreeChildren,
+  type DrillRecommendation } from "@coc/shared";
 import type { RunStore } from "../runStore.js";
 
 export interface AppDeps {
@@ -19,6 +20,8 @@ export interface AppDeps {
   explore?: (epd: string, source: "masters" | "rating") => Promise<ExploreResult>;
   analyzePosition?: (fen: string) => Promise<PositionAnalysis>;
   getTree?: (color: "white" | "black", epd?: string) => Promise<TreeChildren>;
+  saveDrillResults?: (batch: DrillResultsBatch) => Promise<{ saved: number }>;
+  getDrillRecommendations?: () => Promise<DrillRecommendation[]>;
 }
 
 export function createApp(deps: AppDeps) {
@@ -75,7 +78,12 @@ export function createApp(deps: AppDeps) {
       const { color, epd } = c.req.valid("query");
       const r = await deps.getTree?.(color, epd);
       return r ? c.json(r) : c.json({ epd: epd ?? "", color, children: [] }, 200);
-    });
+    })
+    .post("/drill/results", zValidator("json", DrillResultsBatch), async (c) => {
+      const batch = c.req.valid("json");
+      return c.json((await deps.saveDrillResults?.(batch)) ?? { saved: 0 });
+    })
+    .get("/drill/recommended", async (c) => c.json((await deps.getDrillRecommendations?.()) ?? []));
   return app;
 }
 

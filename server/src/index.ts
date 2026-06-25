@@ -19,6 +19,8 @@ import { searchOpenings } from "./openings/searchOpenings.js";
 import { getExplore } from "./study/getExplore.js";
 import { analyzeOnDemand } from "./study/analyzeOnDemand.js";
 import { getTreeChildren } from "./tree/getTreeChildren.js";
+import { saveDrillResults } from "./drill/resultsStore.js";
+import { getDrillRecommendations } from "./drill/recommendedQuery.js";
 import type { SyncRequest } from "@coc/shared";
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -100,6 +102,13 @@ const app = createApp({
     return analyzeOnDemand(db, analyzer, { depth: DEPTH, multipv: MULTIPV }, fen);
   },
   getTree: (color, epd) => getTreeChildren(db, color, epd),
+  saveDrillResults: (batch) => saveDrillResults(db, batch.attempts),
+  getDrillRecommendations: async () =>
+    getDrillRecommendations(
+      db,
+      await getLeaks(db, { minCpLoss: DEFAULT_THRESHOLDS.mistake, depth: DEPTH, engineVersion: engineVersion(), limit: 50 }),
+      { staleDays: 14, now: Math.floor(Date.now() / 1000), limit: 30 }
+    ),
 });
 serve({ fetch: app.fetch, port: PORT });
 console.log(`server on http://localhost:${PORT}`);
