@@ -47,7 +47,7 @@ export const Classification = z.enum(["best", "book", "inaccuracy", "mistake", "
 export type Classification = z.infer<typeof Classification>;
 
 export const SyncRequest = z.object({
-  source: z.enum(["chesscom"]), // lichess source lands in Phase 2; MVP syncs chess.com only
+  source: z.enum(["chesscom", "lichess"]),
   username: z.string().min(1),
   since: z.number().int(),
   until: z.number().int(),

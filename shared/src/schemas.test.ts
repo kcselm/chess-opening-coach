@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GameSummary, GameReview, LeakOccurrence, ReviewMove } from "./schemas.js";
+import { GameSummary, GameReview, LeakOccurrence, ReviewMove, SyncRequest } from "./schemas.js";
 import { BookSource, OpeningListItem, ExploreResult, PositionAnalysis, TreeChild, TreeChildren } from "./schemas.js";
 
 describe("phase-2 schemas", () => {
@@ -61,5 +61,16 @@ describe("phase-3 schemas", () => {
     expect(TreeChild.parse({ ...child, classification: null, avgCpLoss: null }).avgCpLoss).toBeNull();
     const tc = { epd: "E", color: "white", children: [child] };
     expect(TreeChildren.parse(tc).children).toHaveLength(1);
+  });
+});
+
+describe("SyncRequest source", () => {
+  const base = { username: "me", since: 1, until: 2, timeClasses: ["blitz"] as const };
+  it("accepts chesscom and lichess", () => {
+    expect(SyncRequest.parse({ ...base, source: "chesscom" }).source).toBe("chesscom");
+    expect(SyncRequest.parse({ ...base, source: "lichess" }).source).toBe("lichess");
+  });
+  it("rejects an unknown source", () => {
+    expect(() => SyncRequest.parse({ ...base, source: "bughouse" })).toThrow();
   });
 });
