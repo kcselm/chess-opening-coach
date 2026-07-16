@@ -226,3 +226,15 @@ export const DrillRecommendation = z.object({
   lastDrilled: z.number().int().nullable(), // epoch seconds; null if never drilled
 });
 export type DrillRecommendation = z.infer<typeof DrillRecommendation>;
+
+// SM-2 scheduling state for one drilled position (card). Stored in drill_schedule and folded by
+// the pure scheduler; the DB row adds the (epd, color, openingEpd, openingName) identity around it.
+export const CardState = z.object({
+  easeFactor: z.number(),
+  intervalDays: z.number().int(),
+  reps: z.number().int(),
+  dueAt: z.number().int(),          // epoch seconds
+  lastReviewedAt: z.number().int(), // epoch seconds
+  lastGrade: z.number().int().nullable(),
+});
+export type CardState = z.infer<typeof CardState>;
