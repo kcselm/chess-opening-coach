@@ -7,9 +7,9 @@ import type { Leak } from "@coc/shared";
 
 async function memDb() {
   const c = createClient({ url: ":memory:" });
-  await c.execute(`CREATE TABLE drill_attempts (id integer primary key autoincrement, epd text,
-    opening_epd text, opening_name text, color text, source text, played_uci text,
-    pass integer, cp_loss integer, created_at integer);`);
+  await c.execute(`CREATE TABLE drill_schedule (epd text, color text, opening_epd text, opening_name text,
+    ease_factor real, interval_days integer, reps integer, due_at integer,
+    last_reviewed_at integer, last_grade integer, PRIMARY KEY (epd, color));`);
   await c.execute(`CREATE TABLE openings (epd text primary key, eco text, name text);`);
   return drizzle(c, { schema });
 }
@@ -19,53 +19,47 @@ const leak = (over: Partial<Leak>): Leak => ({
   betterMoveSan: "Nf3", occurrences: 3, avgCpLoss: 120, scorePct: 33, bookStatus: "novelty", ...over,
 });
 
+const base = {
+  epd: "p1 w - -", color: "white", openingEpd: "DUEROOT w - -", openingName: "French",
+  easeFactor: 2.5, intervalDays: 1, reps: 1, dueAt: 0, lastReviewedAt: 0, lastGrade: 4,
+};
+const card = (over: Partial<typeof base> = {}) => ({ ...base, ...over });
+
 describe("getDrillRecommendations", () => {
-  it("ranks leak > failed > stale and dedups by opening", async () => {
+  it("ranks leak above due and dedups by opening", async () => {
     const db = await memDb();
-    await db.insert(schema.openings).values({ epd: "FAILROOT w - -", eco: "C10", name: "French" });
-    const NOW = 1_000_000;
-    const day = 86400;
-    // an opening with an unresolved failure (latest attempt at its epd is a fail)
-    await db.insert(schema.drillAttempts).values([
-      { epd: "p1 w - -", openingEpd: "FAILROOT w - -", openingName: "French", color: "white",
-        source: "rating", playedUci: "x", pass: false, cpLoss: 90, createdAt: NOW - day },
-    ]);
-    // a stale opening (drilled long ago, no failures)
-    await db.insert(schema.drillAttempts).values([
-      { epd: "p2 w - -", openingEpd: "STALEROOT w - -", openingName: "London", color: "white",
-        source: "rating", playedUci: "y", pass: true, cpLoss: 0, createdAt: NOW - 40 * day },
+    const NOW = 1_000_000, day = 86400;
+    await db.insert(schema.openings).values({ epd: "DUEROOT w - -", eco: "C10", name: "French" });
+    await db.insert(schema.drillSchedule).values([
+      card({ dueAt: NOW - day, lastReviewedAt: NOW - 2 * day }),                         // due → French
+      card({ epd: "p2 w - -", openingEpd: "FRESH w - -", openingName: "Italian",
+        intervalDays: 6, reps: 2, dueAt: NOW + 3 * day, lastReviewedAt: NOW - day }),    // not due → omitted
     ]);
 
-    const recs = await getDrillRecommendations(db, [leak({})], { staleDays: 14, now: NOW, limit: 10 });
+    const recs = await getDrillRecommendations(db, [leak({})], { now: NOW, limit: 10 });
 
-    expect(recs.map((r) => r.reason)).toEqual(["leak", "failed", "stale"]);
-    expect(recs[0]!.openingEpd).toBe("LEAK w - -");         // toEpd(fenBefore)
-    expect(recs[0]!.score).toBe(360);                       // 3 × 120
-    expect(recs[1]!).toMatchObject({ openingEpd: "FAILROOT w - -", eco: "C10", openingName: "French" });
-    expect(recs[2]!.openingEpd).toBe("STALEROOT w - -");
+    expect(recs.map((r) => r.reason)).toEqual(["leak", "due"]);
+    expect(recs[0]).toMatchObject({ openingEpd: "LEAK w - -", reason: "leak", score: 360 }); // 3 × 120
+    expect(recs[1]).toMatchObject({ openingEpd: "DUEROOT w - -", eco: "C10", openingName: "French", reason: "due", score: 1 });
   });
 
-  it("a later pass at the same position clears the failure", async () => {
+  it("omits openings with no cards due yet", async () => {
     const db = await memDb();
     const NOW = 1_000_000;
-    await db.insert(schema.drillAttempts).values([
-      { epd: "p w - -", openingEpd: "ROOT w - -", openingName: "Caro-Kann", color: "white",
-        source: "rating", playedUci: "x", pass: false, cpLoss: 90, createdAt: NOW - 5 * 86400 },
-      { epd: "p w - -", openingEpd: "ROOT w - -", openingName: "Caro-Kann", color: "white",
-        source: "rating", playedUci: "y", pass: true, cpLoss: 0, createdAt: NOW - 2 * 86400 },
-    ]);
-    const recs = await getDrillRecommendations(db, [], { staleDays: 14, now: NOW, limit: 10 });
-    expect(recs).toHaveLength(0);
+    await db.insert(schema.drillSchedule).values(
+      card({ epd: "p w - -", openingEpd: "FRESH w - -", openingName: "Italian", dueAt: NOW + 5 * 86400 })
+    );
+    expect(await getDrillRecommendations(db, [], { now: NOW, limit: 10 })).toHaveLength(0);
   });
 
-  it("omits recently-drilled openings with no open failures", async () => {
+  it("shows an opening once as a leak even when it also has due cards", async () => {
     const db = await memDb();
     const NOW = 1_000_000;
-    await db.insert(schema.drillAttempts).values([
-      { epd: "p w - -", openingEpd: "FRESH w - -", openingName: "Italian", color: "white",
-        source: "rating", playedUci: "z", pass: true, cpLoss: 0, createdAt: NOW - 3 * 86400 },
-    ]);
-    const recs = await getDrillRecommendations(db, [], { staleDays: 14, now: NOW, limit: 10 });
-    expect(recs).toHaveLength(0);
+    await db.insert(schema.drillSchedule).values(
+      card({ epd: "x w - -", openingEpd: "LEAK w - -", openingName: "Sicilian", dueAt: NOW - 86400 })
+    );
+    const recs = await getDrillRecommendations(db, [leak({})], { now: NOW, limit: 10 });
+    expect(recs).toHaveLength(1);
+    expect(recs[0]).toMatchObject({ openingEpd: "LEAK w - -", reason: "leak" });
   });
 });

@@ -1,14 +1,13 @@
-import { asc } from "drizzle-orm";
+import { lte } from "drizzle-orm";
 import { toEpd, type Leak, type DrillRecommendation, type DrillReason } from "@coc/shared";
-import type { Db } from "../db/client.js";
-import { schema } from "../db/client.js";
+import { schema, type Db } from "../db/client.js";
 
-export interface RecommendOpts { staleDays: number; now: number; limit: number }
+export interface RecommendOpts { now: number; limit: number }
 
-const REASON_RANK: Record<DrillReason, number> = { leak: 0, failed: 1, stale: 2 };
+const REASON_RANK: Record<DrillReason, number> = { leak: 0, due: 1 };
 
-/** Ranked "what to drill" list: leaks (drill from the leak position), openings with an unresolved
- *  first-try failure, and openings gone stale. Deduped by opening EPD, precedence leak > failed > stale. */
+/** Ranked "what to drill": leaks (drill from the leak position, top precedence) then openings that
+ *  hold ≥1 card past its dueAt. Deduped by opening EPD; due score = number of due cards. */
 export async function getDrillRecommendations(
   db: Db, leaks: Leak[], opts: RecommendOpts
 ): Promise<DrillRecommendation[]> {
@@ -17,45 +16,32 @@ export async function getDrillRecommendations(
   // 1. Leaks — highest precedence; drill starts at the leak position itself.
   for (const lk of leaks) {
     const epd = toEpd(lk.fenBefore);
-    if (!byEpd.has(epd)) {
-      byEpd.set(epd, {
-        openingEpd: epd, openingName: lk.openingName, eco: lk.eco,
-        reason: "leak", score: lk.occurrences * lk.avgCpLoss, lastDrilled: null,
-      });
-    }
+    if (!byEpd.has(epd)) byEpd.set(epd, {
+      openingEpd: epd, openingName: lk.openingName, eco: lk.eco,
+      reason: "leak", score: lk.occurrences * lk.avgCpLoss, lastDrilled: null,
+    });
   }
 
-  // 2. Aggregate past attempts by the opening the user drilled (rows in chronological id order, so
-  //    the last write per (openingEpd, epd) is the most recent first-try outcome).
-  const rows = await db.select().from(schema.drillAttempts).orderBy(asc(schema.drillAttempts.id));
-  interface Agg { name: string | null; last: number; latestPassByEpd: Map<string, boolean> }
-  const aggs = new Map<string, Agg>();
-  for (const r of rows) {
-    if (!r.openingEpd) continue;
-    let a = aggs.get(r.openingEpd);
-    if (!a) { a = { name: r.openingName, last: -Infinity, latestPassByEpd: new Map() }; aggs.set(r.openingEpd, a); }
-    if (r.createdAt >= a.last) { a.last = r.createdAt; a.name = r.openingName; }
-    a.latestPassByEpd.set(r.epd, r.pass);
-  }
-
+  // 2. Due cards → group by opening.
+  const due = await db.select().from(schema.drillSchedule).where(lte(schema.drillSchedule.dueAt, opts.now));
   const catalog = new Map((await db.select().from(schema.openings)).map((o) => [o.epd, o]));
-  const staleCutoff = opts.now - opts.staleDays * 86400;
-
+  interface DueAgg { name: string | null; count: number; last: number }
+  const aggs = new Map<string, DueAgg>();
+  for (const r of due) {
+    if (!r.openingEpd) continue;
+    const a = aggs.get(r.openingEpd) ?? { name: r.openingName, count: 0, last: -Infinity };
+    a.count += 1;
+    a.last = Math.max(a.last, r.lastReviewedAt);
+    a.name = r.openingName ?? a.name;
+    aggs.set(r.openingEpd, a);
+  }
   for (const [openingEpd, a] of aggs) {
-    if (byEpd.has(openingEpd)) continue; // a leak already covers this position
-    const failures = [...a.latestPassByEpd.values()].filter((p) => !p).length;
+    if (byEpd.has(openingEpd)) continue; // a leak already covers this opening
     const cat = catalog.get(openingEpd);
-    const base = {
-      openingEpd,
-      openingName: cat?.name ?? a.name ?? "Unknown opening",
-      eco: cat?.eco ?? null,
-      lastDrilled: a.last,
-    };
-    if (failures > 0) {
-      byEpd.set(openingEpd, { ...base, reason: "failed", score: failures });
-    } else if (a.last < staleCutoff) {
-      byEpd.set(openingEpd, { ...base, reason: "stale", score: (opts.now - a.last) / 86400 });
-    }
+    byEpd.set(openingEpd, {
+      openingEpd, openingName: cat?.name ?? a.name ?? "Unknown opening", eco: cat?.eco ?? null,
+      reason: "due", score: a.count, lastDrilled: a.last,
+    });
   }
 
   return [...byEpd.values()]

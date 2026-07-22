@@ -107,7 +107,7 @@ const app = createApp({
     getDrillRecommendations(
       db,
       await getLeaks(db, { minCpLoss: DEFAULT_THRESHOLDS.mistake, depth: DEPTH, engineVersion: engineVersion(), limit: 50 }),
-      { staleDays: 14, now: Math.floor(Date.now() / 1000), limit: 30 }
+      { now: Math.floor(Date.now() / 1000), limit: 30 }
     ),
 });
 serve({ fetch: app.fetch, port: PORT });

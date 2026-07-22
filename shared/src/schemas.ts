@@ -214,7 +214,7 @@ export const DrillResultsBatch = z.object({
 });
 export type DrillResultsBatch = z.infer<typeof DrillResultsBatch>;
 
-export const DrillReason = z.enum(["leak", "failed", "stale"]);
+export const DrillReason = z.enum(["leak", "due"]);
 export type DrillReason = z.infer<typeof DrillReason>;
 
 export const DrillRecommendation = z.object({
