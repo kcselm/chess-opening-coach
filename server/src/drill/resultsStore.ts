@@ -1,6 +1,7 @@
 import type { DrillAttempt } from "@coc/shared";
 import type { Db } from "../db/client.js";
 import { schema } from "../db/client.js";
+import { upsertCardReview } from "./scheduleStore.js";
 
 /** Append first-try drill outcomes, all stamped with one timestamp. Append-only: replaying a line
  *  later just adds rows. Returns how many were written. */
@@ -15,5 +16,9 @@ export async function saveDrillResults(
       source: a.source, playedUci: a.playedUci, pass: a.pass, cpLoss: a.cpLoss, createdAt,
     }))
   );
+  for (const a of attempts) {
+    if (a.cpLoss === null) continue; // ungradable — never a review (matches backfill; keeps store⇄backfill parity)
+    await upsertCardReview(db, a, createdAt);
+  }
   return { saved: attempts.length };
 }
