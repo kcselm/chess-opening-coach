@@ -7,6 +7,7 @@ import { ReviewPage } from "./routes/review.js";
 import { StudyPage } from "./routes/study.js";
 import { TreePage } from "./routes/tree.js";
 import { DrillPage } from "./routes/drill.js";
+import { SettingsPage } from "./routes/settings.js";
 
 const rootRoute = createRootRoute({ component: () => (<AppShell><Outlet /></AppShell>) });
 const dashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: DashboardPage });
@@ -40,7 +41,9 @@ const drillRoute = createRoute({
   },
 });
 
-const routeTree = rootRoute.addChildren([dashboardRoute, leaksRoute, gamesRoute, reviewRoute, studyRoute, treeRoute, drillRoute]);
+const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage });
+
+const routeTree = rootRoute.addChildren([dashboardRoute, leaksRoute, gamesRoute, reviewRoute, studyRoute, treeRoute, drillRoute, settingsRoute]);
 export const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
