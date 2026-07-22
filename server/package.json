@@ -8,6 +8,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/openings/runSeed.ts",
+    "db:backfill-drill-schedule": "tsx src/drill/runBackfill.ts",
     "test": "vitest run"
   },
   "dependencies": {
