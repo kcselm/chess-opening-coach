@@ -10,7 +10,6 @@ import { ingestGames } from "./ingest/ingestService.js";
 import { analyzePositions } from "./analysis/orchestrator.js";
 import { getBook } from "./book/explorerClient.js";
 import { classifyMoves } from "./classify/classifyService.js";
-import { DEFAULT_THRESHOLDS } from "./classify/classifier.js";
 import { loadOpeningTable, pickOpening } from "./openings/seed.js";
 import { getLeaks } from "./leaks/leaksQuery.js";
 import { getGameReview } from "./games/gameReview.js";
@@ -21,12 +20,10 @@ import { analyzeOnDemand } from "./study/analyzeOnDemand.js";
 import { getTreeChildren } from "./tree/getTreeChildren.js";
 import { saveDrillResults } from "./drill/resultsStore.js";
 import { getDrillRecommendations } from "./drill/recommendedQuery.js";
-import type { SyncRequest } from "@coc/shared";
+import { getSettings, saveSettings } from "./settings/settingsStore.js";
+import { drillTuningFromSettings, type SyncRequest, type Settings } from "@coc/shared";
 
 const PORT = Number(process.env.PORT ?? 8787);
-const DEPTH = Number(process.env.ENGINE_DEPTH ?? 18);
-const MULTIPV = Number(process.env.ENGINE_MULTIPV ?? 3);
-const MAX_PLIES = 30;
 
 const db = createDb();
 const runStore = new RunStore();
@@ -38,19 +35,27 @@ function engineVersion(): string {
   return (engine as any).version ?? "stockfish";
 }
 
+/** Start the engine on first use, then apply the current threads/MultiPV settings for this run. */
+async function ensureEngine(s: Settings): Promise<void> {
+  if (!engineStarted) { await engine.start(); engineStarted = true; }
+  engine.setThreads(s.engine.threads);
+  engine.setMultiPV(s.engine.multipv);
+}
+
 async function startSync(runId: string, req: SyncRequest) {
   activeRunId = runId; // set synchronously (before any await) so a concurrent POST sees it
   try {
-    if (!engineStarted) { await engine.start(); engineStarted = true; }
+    const s = await getSettings(db);
+    await ensureEngine(s);
     runStore.update(runId, { phase: "fetching" });
     const source = sourceFor(req.source, process.env.LICHESS_TOKEN);
-    const ingest = await ingestGames(db, source, req, MAX_PLIES, (gamesFetched) =>
+    const ingest = await ingestGames(db, source, req, s.engine.maxPlies, (gamesFetched) =>
       runStore.update(runId, { gamesFetched }));
 
     runStore.update(runId, { phase: "analyzing" });
     const analyzer = { version: engineVersion(),
       analyze: (fen: string, d: number, mpv: number) => engine.analyze(fen, d, mpv) };
-    await analyzePositions(db, analyzer, { depth: DEPTH, multipv: MULTIPV },
+    await analyzePositions(db, analyzer, { depth: s.engine.depth, multipv: s.engine.multipv },
       (positionsAnalyzed, positionsTotal) =>
         runStore.update(runId, { positionsAnalyzed, positionsTotal }));
 
@@ -69,7 +74,7 @@ async function startSync(runId: string, req: SyncRequest) {
       if (op) await db.update(schema.games).set({ eco: op.eco, openingName: op.name }).where(eq(schema.games.id, g.id));
     }
 
-    await classifyMoves(db, { depth: DEPTH, engineVersion: engineVersion(), thresholds: DEFAULT_THRESHOLDS });
+    await classifyMoves(db, { depth: s.engine.depth, engineVersion: engineVersion(), thresholds: s.thresholds });
 
     runStore.update(runId, {
       phase: "done",
@@ -85,30 +90,43 @@ async function startSync(runId: string, req: SyncRequest) {
 const app = createApp({
   runStore, startSync,
   getActiveRunId: () => activeRunId,
-  getLeaks: () => getLeaks(db, { minCpLoss: DEFAULT_THRESHOLDS.mistake, depth: DEPTH,
-    engineVersion: engineVersion(), limit: 50 }),
+  getSettings: () => getSettings(db),
+  saveSettings: (next) => saveSettings(db, next),
+  getLeaks: async () => {
+    const s = await getSettings(db);
+    return getLeaks(db, { minCpLoss: s.thresholds.mistake, depth: s.engine.depth, engineVersion: engineVersion(), limit: 50 });
+  },
   getGames: async () => (await db.select().from(schema.games)).map((g) => ({
     id: g.id, source: g.source as "chesscom" | "lichess", openingName: g.openingName, eco: g.eco,
     myColor: g.myColor as "white" | "black", result: g.result as "win" | "loss" | "draw",
     timeClass: g.timeClass as "bullet" | "blitz" | "rapid" | "classical" | "daily",
     endTime: g.endTime, myRating: g.myRating, oppRating: g.oppRating })),
-  getGame: (id) => getGameReview(db, id, { depth: DEPTH, engineVersion: engineVersion() }),
+  getGame: async (id) => {
+    const s = await getSettings(db);
+    return getGameReview(db, id, { depth: s.engine.depth, engineVersion: engineVersion() });
+  },
   getOccurrences: (epd, san) => getLeakOccurrences(db, epd, san),
   getOpenings: (q) => searchOpenings(db, q),
-  explore: (epd, source) => getExplore(db, epd, source, { depth: DEPTH, engineVersion: engineVersion() }),
+  explore: async (epd, source) => {
+    const s = await getSettings(db);
+    return getExplore(db, epd, source, { depth: s.engine.depth, engineVersion: engineVersion() });
+  },
   analyzePosition: async (fen) => {
-    if (!engineStarted) { await engine.start(); engineStarted = true; }
+    const s = await getSettings(db);
+    await ensureEngine(s);
     const analyzer = { version: engineVersion(), analyze: (f: string, d: number, mpv: number) => engine.analyze(f, d, mpv) };
-    return analyzeOnDemand(db, analyzer, { depth: DEPTH, multipv: MULTIPV }, fen);
+    return analyzeOnDemand(db, analyzer, { depth: s.engine.depth, multipv: s.engine.multipv }, fen);
   },
   getTree: (color, epd) => getTreeChildren(db, color, epd),
-  saveDrillResults: (batch) => saveDrillResults(db, batch.attempts),
-  getDrillRecommendations: async () =>
-    getDrillRecommendations(
-      db,
-      await getLeaks(db, { minCpLoss: DEFAULT_THRESHOLDS.mistake, depth: DEPTH, engineVersion: engineVersion(), limit: 50 }),
-      { now: Math.floor(Date.now() / 1000), limit: 30 }
-    ),
+  saveDrillResults: async (batch) => {
+    const s = await getSettings(db);
+    return saveDrillResults(db, batch.attempts, undefined, drillTuningFromSettings(s));
+  },
+  getDrillRecommendations: async () => {
+    const s = await getSettings(db);
+    const leaks = await getLeaks(db, { minCpLoss: s.thresholds.mistake, depth: s.engine.depth, engineVersion: engineVersion(), limit: 50 });
+    return getDrillRecommendations(db, leaks, { now: Math.floor(Date.now() / 1000), limit: 30 });
+  },
 });
 serve({ fetch: app.fetch, port: PORT });
 console.log(`server on http://localhost:${PORT}`);
