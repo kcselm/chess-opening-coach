@@ -105,3 +105,8 @@ export const drillSchedule = sqliteTable(
     byDue: index("drill_schedule_due_idx").on(t.dueAt),
   })
 );
+
+export const settings = sqliteTable("settings", {
+  id:   integer("id").primaryKey(), // always 1 — a single-row store
+  json: text("json").notNull(),     // a Settings value, validated on read and write
+});
