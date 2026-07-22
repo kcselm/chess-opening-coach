@@ -6,6 +6,7 @@ import type { DrillRecommendation } from "@coc/shared";
 
 const recs: DrillRecommendation[] = [
   { openingEpd: "R w - -", openingName: "Caro-Kann", eco: "B10", reason: "leak", score: 360, lastDrilled: null },
+  { openingEpd: "S w - -", openingName: "French", eco: "C10", reason: "due", score: 3, lastDrilled: 123 },
 ];
 
 vi.mock("@tanstack/react-router", () => ({
@@ -37,5 +38,11 @@ describe("DrillPage", () => {
     expect(screen.getByText("leak")).toBeInTheDocument();
     fireEvent.click(screen.getByText(/Caro-Kann/));
     await waitFor(() => expect(screen.getByTestId("workspace")).toBeInTheDocument());
+  });
+  it("shows the due reason chip and a positions-due count", async () => {
+    await renderPage();
+    await waitFor(() => expect(screen.getByText(/French/)).toBeInTheDocument());
+    expect(screen.getByText("due")).toBeInTheDocument();
+    expect(screen.getByText(/3 positions due/)).toBeInTheDocument();
   });
 });

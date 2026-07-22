@@ -51,17 +51,24 @@ function Recommended({ onPick }: { onPick: (r: DrillRecommendation) => void }) {
     queryFn: async () => (await (await api.drill.recommended.$get()).json()) as DrillRecommendation[],
   });
   if (recs.length === 0) return <p>No recommendations yet — sync some games, or pick an opening below.</p>;
+  const dueTotal = recs.filter((r) => r.reason === "due").reduce((s, r) => s + r.score, 0);
   return (
-    <ul style={{ listStyle: "none", padding: 0, maxWidth: 420 }}>
-      {recs.map((r) => (
-        <li key={r.openingEpd} style={{ margin: "4px 0" }}>
-          <button onClick={() => onPick(r)} style={{ cursor: "pointer", textAlign: "left", width: "100%" }}>
-            <span style={{ fontSize: 11, textTransform: "uppercase", background: "#eee", padding: "1px 6px", borderRadius: 4, marginRight: 8 }}>{r.reason}</span>
-            <b>{r.eco ?? ""}</b> {r.openingName}
-          </button>
-        </li>
-      ))}
-    </ul>
+    <>
+      {dueTotal > 0 && (
+        <p style={{ fontSize: 12, color: "#555", margin: "4px 0" }}>{dueTotal} positions due</p>
+      )}
+      <ul style={{ listStyle: "none", padding: 0, maxWidth: 420 }}>
+        {recs.map((r) => (
+          <li key={r.openingEpd} style={{ margin: "4px 0" }}>
+            <button onClick={() => onPick(r)} style={{ cursor: "pointer", textAlign: "left", width: "100%" }}>
+              <span style={{ fontSize: 11, textTransform: "uppercase", background: "#eee", padding: "1px 6px", borderRadius: 4, marginRight: 8 }}>{r.reason}</span>
+              <b>{r.eco ?? ""}</b> {r.openingName}
+              {r.reason === "due" && <span style={{ marginLeft: 6, color: "#777" }}>· {r.score} due</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
