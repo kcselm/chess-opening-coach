@@ -44,4 +44,12 @@ describe("upsertCardReview", () => {
     const [card] = await db.select().from(schema.drillSchedule);
     expect(card).toMatchObject({ reps: 0, intervalDays: 1, lastGrade: 2 });
   });
+
+  it("grades with the provided tuning buckets (a fail mapped to a pass advances instead of lapsing)", async () => {
+    const db = await memDb();
+    await upsertCardReview(db, attempt({ pass: false, cpLoss: 90 }), 1000,
+      { buckets: { fail: 4, pass: 4, best: 5 }, ease: { start: 2.5, floor: 1.3 } });
+    const [card] = await db.select().from(schema.drillSchedule);
+    expect(card).toMatchObject({ reps: 1, intervalDays: 1, lastGrade: 4 }); // default fail→2 would give reps 0
+  });
 });

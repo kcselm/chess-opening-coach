@@ -1,12 +1,14 @@
 import { asc } from "drizzle-orm";
-import type { Color, BookSource, DrillAttempt } from "@coc/shared";
+import { DEFAULT_DRILL_TUNING, type Color, type BookSource, type DrillAttempt, type DrillTuning } from "@coc/shared";
 import { schema, type Db } from "../db/client.js";
 import { upsertCardReview } from "./scheduleStore.js";
 
 /** Rebuild drill_schedule from scratch by replaying every drill_attempts row through SM-2 in
- *  chronological (id) order. Idempotent: clears the table first, so it is safe to re-run to resync.
- *  Same function + order as the live per-attempt path, so incremental and batch folds agree. */
-export async function backfillSchedule(db: Db): Promise<{ cards: number }> {
+ *  chronological (id) order, under the current `tuning`. Idempotent: clears the table first, so it is
+ *  safe to re-run to resync. Same function + order as the live per-attempt path. */
+export async function backfillSchedule(
+  db: Db, tuning: DrillTuning = DEFAULT_DRILL_TUNING
+): Promise<{ cards: number }> {
   await db.delete(schema.drillSchedule);
   const rows = await db.select().from(schema.drillAttempts).orderBy(asc(schema.drillAttempts.id));
   for (const r of rows) {
@@ -16,7 +18,7 @@ export async function backfillSchedule(db: Db): Promise<{ cards: number }> {
       color: r.color as Color, source: r.source as BookSource,
       playedUci: r.playedUci, pass: r.pass, cpLoss: r.cpLoss,
     };
-    await upsertCardReview(db, a, r.createdAt);
+    await upsertCardReview(db, a, r.createdAt, tuning);
   }
   return { cards: (await db.select().from(schema.drillSchedule)).length };
 }

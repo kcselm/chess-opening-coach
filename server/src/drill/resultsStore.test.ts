@@ -71,4 +71,12 @@ describe("saveDrillResults", () => {
     expect(cards).toHaveLength(1);
     expect(cards[0]!.epd).toBe("gradable w - -");
   });
+
+  it("forwards drill tuning to the schedule fold", async () => {
+    const db = await memDb();
+    await saveDrillResults(db, [attempt({ pass: false, cpLoss: 90 })], () => 1000,
+      { buckets: { fail: 4, pass: 4, best: 5 }, ease: { start: 2.5, floor: 1.3 } });
+    const [card] = await db.select().from(schema.drillSchedule);
+    expect(card).toMatchObject({ reps: 1, intervalDays: 1, lastGrade: 4 });
+  });
 });
