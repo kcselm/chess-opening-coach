@@ -3,3 +3,4 @@ export * from "./epd.js";
 export * from "./grade.js";
 export * from "./rng.js";
 export * from "./srs.js";
+export * from "./settings.js";
