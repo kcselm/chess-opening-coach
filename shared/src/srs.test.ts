@@ -45,3 +45,24 @@ describe("scheduleReview", () => {
     expect(scheduleReview(null, 4, 0).easeFactor).toBeCloseTo(EF_START, 5); // grade 4 leaves EF unchanged
   });
 });
+
+describe("gradeFromDrill (custom buckets)", () => {
+  it("uses the provided buckets instead of the defaults", () => {
+    const buckets = { fail: 1, pass: 3, best: 4 };
+    expect(gradeFromDrill({ pass: false, cpLoss: 80 }, buckets)).toBe(1);
+    expect(gradeFromDrill({ pass: true, cpLoss: 30 }, buckets)).toBe(3);
+    expect(gradeFromDrill({ pass: true, cpLoss: 0 }, buckets)).toBe(4);
+  });
+});
+
+describe("scheduleReview (custom ease)", () => {
+  it("starts a new card from the provided ease.start", () => {
+    // grade 4 leaves EF unchanged, so a brand-new card keeps ease.start exactly
+    expect(scheduleReview(null, 4, 0, { start: 2.0, floor: 1.3 }).easeFactor).toBeCloseTo(2.0, 5);
+  });
+  it("floors the ease factor at the provided ease.floor after repeated lapses", () => {
+    let s: CardState | null = null;
+    for (let i = 0; i < 10; i++) s = scheduleReview(s, 2, i, { start: 2.5, floor: 1.5 });
+    expect(s!.easeFactor).toBe(1.5);
+  });
+});
