@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey, index } from "drizzle-orm/sqlite-core";
 
 export const games = sqliteTable("games", {
   id: text("id").primaryKey(),
@@ -84,4 +84,24 @@ export const drillAttempts = sqliteTable(
     createdAt: integer("created_at").notNull(),
   },
   (t) => ({ byEpd: index("drill_attempts_epd_idx").on(t.epd) })
+);
+
+export const drillSchedule = sqliteTable(
+  "drill_schedule",
+  {
+    epd: text("epd").notNull(),                        // position the user moves in
+    color: text("color").notNull(),                    // side drilled — a card is (epd, color)
+    openingEpd: text("opening_epd"),                   // most-recent opening context, for grouping "due"
+    openingName: text("opening_name"),
+    easeFactor: real("ease_factor").notNull(),         // SM-2 EF, starts 2.5, floor 1.3
+    intervalDays: integer("interval_days").notNull(),
+    reps: integer("reps").notNull(),                   // consecutive successful reps
+    dueAt: integer("due_at").notNull(),                // epoch seconds; surfaces when due_at <= now
+    lastReviewedAt: integer("last_reviewed_at").notNull(),
+    lastGrade: integer("last_grade"),                  // 0–5, for display/debug
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.epd, t.color] }),
+    byDue: index("drill_schedule_due_idx").on(t.dueAt),
+  })
 );
