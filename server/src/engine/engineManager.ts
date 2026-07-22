@@ -35,12 +35,23 @@ export class EngineManager {
     // sync's own error handling/timeout territory takes over.
     proc.on("error", (e) => { console.error(`[engine] ${e.message}`); });
     await this.handshake();
-    this.send(`setoption name Threads value ${this.opts.threads ?? Number(process.env.ENGINE_THREADS ?? 4)}`);
-    this.send(`setoption name MultiPV value ${this.opts.multipv ?? Number(process.env.ENGINE_MULTIPV ?? 3)}`);
+    this.send(`setoption name Threads value ${this.opts.threads ?? 4}`);
+    this.send(`setoption name MultiPV value ${this.opts.multipv ?? 3}`);
   }
 
   private send(cmd: string) {
     this.proc!.stdin.write(cmd + "\n");
+  }
+
+  /** Apply Threads to the running engine (a UCI setoption). No-op before start(); start() applies the
+   *  initial value. Safe between analyses — the queue serializes them, so the engine is idle here. */
+  setThreads(threads: number): void {
+    if (this.proc) this.send(`setoption name Threads value ${threads}`);
+  }
+
+  /** Apply MultiPV to the running engine (a UCI setoption). No-op before start(). */
+  setMultiPV(multipv: number): void {
+    if (this.proc) this.send(`setoption name MultiPV value ${multipv}`);
   }
 
   private handshake(): Promise<void> {
